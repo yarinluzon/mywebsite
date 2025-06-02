@@ -4,97 +4,163 @@
   <meta charset="UTF-8" />
   <title>דיווחים - תחרות מחבואים MPG</title>
   <style>
-    body { font-family: Arial, sans-serif; padding: 20px; background: #f2f2f2; direction: rtl; }
-    .container { max-width: 800px; margin: auto; background: white; padding: 20px; border-radius: 8px; }
-    h2 { text-align: center; margin-bottom: 20px; }
-    .report { border-bottom: 1px solid #ddd; padding: 10px 0; }
-    .report:last-child { border-bottom: none; }
-    .label { font-weight: bold; }
-    a { color: #4caf50; text-decoration: none; }
-    a:hover { text-decoration: underline; }
-    img, video { max-width: 100%; max-height: 250px; margin-top: 5px; display: block; }
+    body {
+      font-family: Arial, sans-serif;
+      padding: 20px;
+      background: #f2f2f2;
+      direction: rtl;
+    }
+    .container {
+      max-width: 800px;
+      margin: auto;
+      background: white;
+      padding: 20px;
+      border-radius: 8px;
+    }
+    h2 {
+      text-align: center;
+      margin-bottom: 20px;
+    }
+    .report {
+      border-bottom: 1px solid #ddd;
+      padding: 10px 0;
+    }
+    .report:last-child {
+      border-bottom: none;
+    }
+    .label {
+      font-weight: bold;
+    }
+    a {
+      color: #4caf50;
+      text-decoration: none;
+    }
+    a:hover {
+      text-decoration: underline;
+    }
+    #loginForm {
+      text-align: center;
+      margin-top: 100px;
+    }
+    input[type="text"], input[type="password"] {
+      padding: 8px;
+      width: 200px;
+      margin: 5px;
+    }
+    button {
+      padding: 10px 20px;
+      background: #4caf50;
+      color: white;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+    button:hover {
+      background: #45a049;
+    }
   </style>
 </head>
 <body>
-  <div class="container">
-    <h2>כל הדיווחים ששמרת</h2>
-    <div id="reportsList"></div>
 
-    <button onclick="clearReports()" style="margin-top: 20px; background:#f44336; color:white; border:none; padding:10px; border-radius:5px; cursor:pointer;">
-      מחק את כל הדיווחים
-    </button>
+<div id="loginForm">
+  <h2>🔒 כניסה לדיווחים</h2>
+  <input type="text" id="username" placeholder="שם משתמש"><br>
+  <input type="password" id="password" placeholder="סיסמה"><br>
+  <button onclick="login()">התחבר</button>
+</div>
 
-    <p style="margin-top:20px;">
-      <a href="index.html">חזור לטופס דיווח</a>
-    </p>
-  </div>
+<div class="container" id="reportsContainer" style="display: none;">
+  <h2>כל הדיווחים ששמרת</h2>
+  <div id="reportsList"></div>
 
-  <script>
-    function calculatePoints(report) {
-      let points = 0;
-      if (report.survivedToEnd === "yes") points += 10;
-      if (report.lastHider === "yes") points += 10;
-      const caught = parseInt(report.caughtCount);
-      if (!isNaN(caught)) points += caught;
-      return points;
+  <button onclick="clearReports()" style="margin-top: 20px; background:#f44336; color:white; border:none; padding:10px; border-radius:5px; cursor:pointer;">
+    מחק את כל הדיווחים
+  </button>
+
+  <p style="margin-top:20px;">
+    <a href="index.html">חזור לטופס דיווח</a>
+  </p>
+</div>
+
+<script>
+  function login() {
+    const user = document.getElementById('username').value;
+    const pass = document.getElementById('password').value;
+
+    if (user === 'admin' && pass === '1234') {
+      document.getElementById('loginForm').style.display = 'none';
+      document.getElementById('reportsContainer').style.display = 'block';
+      renderReports();
+    } else {
+      alert('שם משתמש או סיסמה לא נכונים');
+    }
+  }
+
+  function calculatePoints(report) {
+    let points = 0;
+
+    if (report.survivedToEnd === "yes") points += 10;
+    if (report.lastHider === "yes") points += 10;
+
+    const caught = parseInt(report.caughtCount);
+    if (!isNaN(caught)) points += caught;
+
+    return points;
+  }
+
+  function renderReports() {
+    const reportsList = document.getElementById('reportsList');
+    const reports = JSON.parse(localStorage.getItem('reports') || '[]');
+
+    if (reports.length === 0) {
+      reportsList.innerHTML = '<p>אין דיווחים שמורים.</p>';
+      return;
     }
 
-    function displayProof(proofData) {
-      if (!proofData) return 'לא צורפה הוכחה';
-      if (proofData.startsWith('data:image')) {
-        return `<img src="${proofData}" alt="תמונה" />`;
-      } else if (proofData.startsWith('data:video')) {
-        return `<video controls><source src="${proofData}" type="video/mp4">הדפדפן לא תומך בווידאו.</video>`;
+    reportsList.innerHTML = '';
+
+    reports.forEach((r, i) => {
+      const points = calculatePoints(r);
+
+      const div = document.createElement('div');
+      div.classList.add('report');
+
+      let proofHTML = '';
+      if (r.proofFileData?.startsWith('data:image')) {
+        proofHTML = `<img src="${r.proofFileData}" style="max-width:200px;" />`;
+      } else if (r.proofFileData?.startsWith('data:video')) {
+        proofHTML = `<video controls style="max-width:300px;"><source src="${r.proofFileData}" /></video>`;
       } else {
-        return 'סוג הוכחה לא נתמך';
-      }
-    }
-
-    function renderReports() {
-      const reportsList = document.getElementById('reportsList');
-      const reports = JSON.parse(localStorage.getItem('reports') || '[]');
-
-      if (reports.length === 0) {
-        reportsList.innerHTML = '<p>אין דיווחים שמורים.</p>';
-        return;
+        proofHTML = 'לא צורפה הוכחה';
       }
 
-      reportsList.innerHTML = '';
+      div.innerHTML = `
+        <p><span class="label">דיווח #${i + 1} - ${r.date}</span></p>
+        <p><span class="label">שם שחקן במשחק:</span> ${r.playerName}</p>
+        <p><span class="label">שם שחקן בדיסקורד:</span> ${r.discordName}</p>
+        <p><span class="label">ראונד:</span> ${r.roundNumber}</p>
+        <p><span class="label">תפקיד:</span> ${r.role}</p>
+        <p><span class="label">האם שרד עד סוף הראונד:</span> ${r.survivedToEnd}</p>
+        <p><span class="label">האם היה בין 10 האחרונים:</span> ${r.top10}</p>
+        <p><span class="label">האם היה האחרון שנותר:</span> ${r.lastHider}</p>
+        <p><span class="label">כמה שחקנים תפסת:</span> ${r.caughtCount}</p>
+        <p><span class="label">תפס הכי הרבה שחקנים לדעתך:</span> ${r.mostCatches}</p>
+        <p><span class="label">הערות:</span> ${r.notes}</p>
+        <p><span class="label">הוכחה:</span><br> ${proofHTML}</p>
+        <p><span class="label">🔢 ניקוד סופי:</span> ${points} נקודות</p>
+      `;
 
-      reports.forEach((r, i) => {
-        const points = calculatePoints(r);
+      reportsList.appendChild(div);
+    });
+  }
 
-        const div = document.createElement('div');
-        div.classList.add('report');
-
-        div.innerHTML = `
-          <p><span class="label">דיווח #${i + 1} - ${r.date}</span></p>
-          <p><span class="label">שם שחקן במשחק:</span> ${r.playerName}</p>
-          <p><span class="label">שם שחקן בדיסקורד:</span> ${r.discordName}</p>
-          <p><span class="label">ראונד:</span> ${r.roundNumber}</p>
-          <p><span class="label">תפקיד:</span> ${r.role}</p>
-          <p><span class="label">האם שרד עד סוף הראונד:</span> ${r.survivedToEnd}</p>
-          <p><span class="label">האם היה בין 10 האחרונים:</span> ${r.top10}</p>
-          <p><span class="label">האם היה האחרון שנותר:</span> ${r.lastHider}</p>
-          <p><span class="label">כמה שחקנים תפסת:</span> ${r.caughtCount}</p>
-          <p><span class="label">תפס הכי הרבה שחקנים לדעתך:</span> ${r.mostCatches}</p>
-          <p><span class="label">🔢 ניקוד סופי:</span> ${points} נקודות</p>
-          <p><span class="label">הוכחה:</span><br>${displayProof(r.proofData)}</p>
-          <p><span class="label">הערות:</span> ${r.notes}</p>
-        `;
-
-        reportsList.appendChild(div);
-      });
+  function clearReports() {
+    if (confirm('אתה בטוח שברצונך למחוק את כל הדיווחים?')) {
+      localStorage.removeItem('reports');
+      renderReports();
     }
+  }
+</script>
 
-    function clearReports() {
-      if(confirm('אתה בטוח שברצונך למחוק את כל הדיווחים?')) {
-        localStorage.removeItem('reports');
-        renderReports();
-      }
-    }
-
-    renderReports();
-  </script>
 </body>
 </html>
